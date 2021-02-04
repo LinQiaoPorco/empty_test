@@ -7,6 +7,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using CommentNET.Data;
 using CommentNET.Models;
+using CommentNET.Services;
 
 namespace CommentNET.Controllers
 {
@@ -14,33 +15,77 @@ namespace CommentNET.Controllers
     [ApiController]
     public class CommentsController : ControllerBase
     {
-        private readonly CommentsContext _context;
-
+        private CommentsContext _context;
         public CommentsController(CommentsContext context)
         {
             _context = context;
         }
+        // private readonly ICommentService _commentService;
+        
+        // public CommentsController(ICommentService commentService)
+        // {
+        //     _commentService = commentService;   
+        // }
 
         // GET: api/Comments
         [HttpGet]
-        public async Task<ActionResult<IEnumerable<Comment>>> GetComments()
+        // public async Task<IEnumerable<Comment>> GetComments()
+        // {
+        //     var comments = await _commentService.ListAsync();
+        //     return comments;
+        // }
+        public IEnumerable<Comment> GetComments()
         {
-            return await _context.Comments.ToListAsync();
+            return _context.Comments;
+        }
+
+        //[Route("api/content/[controller]/{contentId}")]
+        [HttpGet("{contentId}")]
+        public IEnumerable<CommentDTO> GetCommentsByContentId(string contentId)
+        {
+            var commentDTOs = new List<CommentDTO>();
+            // var allComments = _context.Comments
+            //     .Where(c => c.ContentId == contentId)
+            //     .AsNoTracking();
+
+            var mainComments = _context.Comments
+                .Where(c => c.ContentId == contentId)
+                .Where(c => c.ParentId == null)
+                .OrderBy(c => c.PostDate)
+                .AsNoTracking();
+
+            foreach (var comment in mainComments)
+            {
+                var subComments = _context.Comments
+                    .Where(c => c.ContentId == contentId)
+                    .Where(c => c.ParentId == comment.Id)
+                    .OrderBy(c => c.PostDate)
+                    .AsNoTracking();
+
+                commentDTOs.Add(
+                    new CommentDTO(){ 
+                        MainComment = comment, 
+                        SubComments = subComments 
+                        }
+                );
+            }   
+
+            return commentDTOs;
         }
 
         // GET: api/Comments/5
-        [HttpGet("{id}")]
-        public async Task<ActionResult<Comment>> GetComment(long id)
-        {
-            var comment = await _context.Comments.FindAsync(id);
+        // [HttpGet("{id}")]
+        // public async Task<ActionResult<Comment>> GetComment(long id)
+        // {
+        //     var comment = await _context.Comments.FindAsync(id);
 
-            if (comment == null)
-            {
-                return NotFound();
-            }
+        //     if (comment == null)
+        //     {
+        //         return NotFound();
+        //     }
 
-            return comment;
-        }
+        //     return comment;
+        // }
 
         // PUT: api/Comments/5
         // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
@@ -81,7 +126,7 @@ namespace CommentNET.Controllers
             _context.Comments.Add(comment);
             await _context.SaveChangesAsync();
 
-            return CreatedAtAction(nameof(GetComment), new { id = comment.Id }, comment);
+            return CreatedAtAction(nameof(GetComments), null);
         }
 
         // DELETE: api/Comments/5

@@ -12,6 +12,7 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.OpenApi.Models;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.AspNetCore.Diagnostics.EntityFrameworkCore;
 using CommentNET.Models;
 using CommentNET.Data;
 
@@ -31,8 +32,10 @@ namespace CommentNET
         {
             services.AddDbContext<CommentsContext>(
                 options =>
-                options.UseInMemoryDatabase("Comments")
-                );
+                options.UseSqlServer(Configuration.GetConnectionString("DefaultConnection"))
+            );
+            Console.WriteLine(Configuration.GetConnectionString("DefaultConnection"));
+            services.AddDatabaseDeveloperPageExceptionFilter();
             services.AddControllers();
             services.AddSwaggerGen(c =>
             {
