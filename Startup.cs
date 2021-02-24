@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.HttpsPolicy;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -34,9 +35,19 @@ namespace CommentNET
                 options =>
                 options.UseSqlServer(Configuration.GetConnectionString("DefaultConnection"))
             );
-            Console.WriteLine(Configuration.GetConnectionString("DefaultConnection"));
+            
             services.AddDatabaseDeveloperPageExceptionFilter();
             services.AddControllers();
+            services.AddAuthorization();
+
+            services.AddAuthentication("Bearer")
+                .AddJwtBearer("Bearer", options =>
+                {
+                    options.Authority = "https://auth.prime-minister.pub";
+                    //options.RequireHttpsMetadata = false;
+                    options.Audience = "CommentsApi";
+                });
+
             services.AddSwaggerGen(c =>
             {
                 c.SwaggerDoc("v1", new OpenApiInfo { Title = "CommentNET", Version = "v1" });
@@ -56,7 +67,8 @@ namespace CommentNET
             app.UseHttpsRedirection();
 
             app.UseRouting();
-
+            
+            app.UseAuthentication();
             app.UseAuthorization();
 
             app.UseEndpoints(endpoints =>

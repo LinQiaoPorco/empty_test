@@ -4,6 +4,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.EntityFrameworkCore;
 using CommentNET.Data;
 using CommentNET.Models;
@@ -13,6 +14,7 @@ namespace CommentNET.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
+    [Authorize]
     public class CommentsController : ControllerBase
     {
         private CommentsContext _context;
@@ -28,14 +30,21 @@ namespace CommentNET.Controllers
         // }
 
         // GET: api/Comments
-        [HttpGet]
+        //[HttpGet]
         // public async Task<IEnumerable<Comment>> GetComments()
         // {
         //     var comments = await _commentService.ListAsync();
         //     return comments;
         // }
+        
+        [HttpGet]
         public IEnumerable<Comment> GetComments()
         {
+            Console.WriteLine("====================");
+            foreach (var c in User.Claims)
+            {
+                Console.WriteLine("{0} ==> {1}", c.Type, c.Value);
+            }
             return _context.Comments;
         }
 
@@ -43,6 +52,7 @@ namespace CommentNET.Controllers
         [HttpGet("{contentId}")]
         public IEnumerable<CommentDTO> GetCommentsByContentId(string contentId)
         {
+            Console.WriteLine(HttpContext.User.Identity);
             var commentDTOs = new List<CommentDTO>();
             // var allComments = _context.Comments
             //     .Where(c => c.ContentId == contentId)
@@ -74,18 +84,22 @@ namespace CommentNET.Controllers
         }
 
         // GET: api/Comments/5
-        // [HttpGet("{id}")]
-        // public async Task<ActionResult<Comment>> GetComment(long id)
-        // {
-        //     var comment = await _context.Comments.FindAsync(id);
+        [HttpPost("{id}")]
+        public async Task<ActionResult<Comment>> ChangeCommentById(long id, Comment comment)
+        {
+            var original_comment = await _context.Comments.FindAsync(id);
 
-        //     if (comment == null)
-        //     {
-        //         return NotFound();
-        //     }
+            if (original_comment == null)
+            {
+                return NotFound();
+            }
 
-        //     return comment;
-        // }
+            if (comment == original_comment)
+            {
+                
+            }
+            return comment;
+        }
 
         // PUT: api/Comments/5
         // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
