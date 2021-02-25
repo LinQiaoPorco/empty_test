@@ -45,6 +45,7 @@ namespace CommentNET.Controllers
             {
                 Console.WriteLine("{0} ==> {1}", c.Type, c.Value);
             }
+            
             return _context.Comments;
         }
 
