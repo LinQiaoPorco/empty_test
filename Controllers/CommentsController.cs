@@ -84,7 +84,7 @@ namespace CommentNET.Controllers
             return commentDTOs;
         }
 
-        // GET: api/Comments/5
+        // POST: api/Comments/5
         [HttpPost("{id}")]
         public async Task<ActionResult<Comment>> ChangeCommentById(long id, Comment comment)
         {
