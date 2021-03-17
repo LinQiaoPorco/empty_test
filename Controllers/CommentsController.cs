@@ -14,7 +14,7 @@ namespace CommentNET.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
-    [Authorize]
+    //[Authorize]
     public class CommentsController : ControllerBase
     {
         private CommentsContext _context;
@@ -46,7 +46,7 @@ namespace CommentNET.Controllers
                 Console.WriteLine("{0} ==> {1}", c.Type, c.Value);
             }
             
-            return _context.Comments;
+            return _context.Comments.AsNoTracking();
         }
 
         //[Route("api/content/[controller]/{contentId}")]
@@ -86,7 +86,7 @@ namespace CommentNET.Controllers
 
         // POST: api/Comments/5
         [HttpPost("{id}")]
-        public async Task<ActionResult<Comment>> ChangeCommentById(long id, Comment comment)
+        public async Task<IActionResult> ChangeCommentById(long id, string commentContent)
         {
             var original_comment = await _context.Comments.FindAsync(id);
 
@@ -95,53 +95,84 @@ namespace CommentNET.Controllers
                 return NotFound();
             }
 
-            if (comment == original_comment)
+            if (commentContent != original_comment.CommentContent)
             {
-                
+                original_comment.CommentContent = commentContent;
+                try
+                {
+                    await _context.SaveChangesAsync();
+                }
+                catch (DbUpdateConcurrencyException)
+                {
+                    if (!CommentExists(id))
+                    {
+                        return NotFound();
+                    }
+                    else
+                    {
+                        throw null;
+                    }
+                }
+                return Ok();
             }
-            return comment;
+            return Ok();
         }
 
         // PUT: api/Comments/5
         // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
-        [HttpPut("{id}")]
-        public async Task<IActionResult> PutComment(long id, Comment comment)
-        {
-            if (id != comment.Id)
-            {
-                return BadRequest();
-            }
+        // [HttpPost]
+        // public async Task<IActionResult> PutComment(Comment comment)
+        // {
+        //     if (id != comment.Id)
+        //     {
+        //         return BadRequest();
+        //     }
 
-            _context.Entry(comment).State = EntityState.Modified;
+        //     _context.Entry(comment).State = EntityState.Modified;
 
-            try
-            {
-                await _context.SaveChangesAsync();
-            }
-            catch (DbUpdateConcurrencyException)
-            {
-                if (!CommentExists(id))
-                {
-                    return NotFound();
-                }
-                else
-                {
-                    throw;
-                }
-            }
+        //     try
+        //     {
+        //         await _context.SaveChangesAsync();
+        //     }
+        //     catch (DbUpdateConcurrencyException)
+        //     {
+        //         if (!CommentExists(id))
+        //         {
+        //             return NotFound();
+        //         }
+        //         else
+        //         {
+        //             throw;
+        //         }
+        //     }
 
-            return NoContent();
-        }
+        //     return NoContent();
+        // }
 
         // POST: api/Comments
         // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
         [HttpPost]
-        public async Task<ActionResult<Comment>> PostComment(Comment comment)
+        public async Task<ActionResult<Comment>> PostComment(CommentPost commentPost)
         {
-            _context.Comments.Add(comment);
+            var commentToPost = new Comment(){
+                CommentContent = commentPost.CommentContent,
+                ContentId = commentPost.ContentId,
+                CommentedUserId = commentPost.CommentedUserId,
+                CommentedUserName = commentPost.CommentedUserName,
+                PostDate = DateTime.Now,
+                Hidden = false,
+                CommentLiked = 0,
+                CommentDisliked = 0
+            };
+            if (commentPost.ParentId.HasValue)
+            {
+                commentToPost.ParentId = commentPost.ParentId;
+            }
+
+            _context.Comments.Add(commentToPost);
             await _context.SaveChangesAsync();
 
-            return CreatedAtAction(nameof(GetComments), null);
+            return CreatedAtAction(nameof(GetCommentsByContentId), commentToPost.ContentId);
         }
 
         // DELETE: api/Comments/5
@@ -154,7 +185,8 @@ namespace CommentNET.Controllers
                 return NotFound();
             }
 
-            _context.Comments.Remove(comment);
+            //_context.Comments.Remove(comment);
+            comment.Hidden = true;
             await _context.SaveChangesAsync();
 
             return NoContent();
